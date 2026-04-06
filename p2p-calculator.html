@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hope Genesis — P2P Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #181818;
+    --border: #2a2a2a;
+    --accent: #c8ff00;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --green: #00e676;
+    --red: #ff3d3d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(200,255,0,0.04) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px);
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .header-left {}
+
+  .label-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(200,255,0,0.07);
+    border: 1px solid rgba(200,255,0,0.2);
+    padding: 4px 10px;
+    display: inline-block;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(22px, 4vw, 32px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -1px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-weight: 300;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,230,118,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 5px rgba(0,230,118,0); }
+  }
+
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    border: 1px solid rgba(0,230,118,0.3);
+    background: rgba(0,230,118,0.05);
+    padding: 6px 12px;
+    align-self: flex-start;
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+
+  /* INPUT CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent) 0%, transparent 60%);
+  }
+
+  .card-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 22px;
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 480px) {
+    .input-grid { grid-template-columns: 1fr; }
+  }
+
+  .field label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-prefix {
+    position: absolute;
+    left: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    pointer-events: none;
+    font-weight: 600;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 12px 12px 12px 28px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200,255,0,0.08);
+  }
+
+  .hint {
+    font-size: 10px;
+    color: #444;
+    margin-top: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .calc-btn {
+    width: 100%;
+    margin-top: 22px;
+    padding: 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .calc-btn:hover {
+    background: #d4ff1a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(200,255,0,0.25);
+  }
+
+  .calc-btn:active { transform: translateY(0); }
+
+  /* RESULTS */
+  #results { display: none; }
+  #results.visible { display: block; animation: fadeUp 0.35s ease forwards; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 480px) {
+    .results-grid { grid-template-columns: 1fr; }
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+  }
+
+  .stat-box.highlight {
+    border-color: rgba(200,255,0,0.35);
+    background: rgba(200,255,0,0.03);
+    grid-column: 1 / -1;
+  }
+
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-box.highlight .stat-value {
+    font-size: 34px;
+  }
+
+  .stat-value.normal { color: var(--text); font-size: 20px; }
+  .stat-value.deduct { color: var(--red); }
+  .stat-value.green { color: var(--green); }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* BREAKDOWN */
+  .breakdown-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+  }
+
+  .breakdown-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2) 0%, transparent 60%);
+  }
+
+  .breakdown-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .breakdown-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+    animation: stepIn 0.3s ease backwards;
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(200,255,0,0.08);
+    border: 1px solid rgba(200,255,0,0.2);
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .step-content { flex: 1; }
+
+  .step-heading {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .step-detail {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .step-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  .step-value.neg { color: var(--red); }
+  .step-value.pos { color: var(--green); }
+
+  /* BRACKET TABLE */
+  .bracket-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    margin-top: 12px;
+  }
+
+  .bracket-table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .bracket-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: #ccc;
+  }
+
+  .bracket-table tr.active td { background: rgba(200,255,0,0.04); color: var(--text); }
+  .bracket-table tr.active td:last-child { color: var(--accent); font-weight: 600; }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  footer {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #333;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-left">
+      <div class="label-chip">Offline P2P</div>
+      <h1>HOPE<span> </span>GENESIS</h1>
+      <div class="subtitle">Trusted Crypto Exchange Services</div>
+    </div>
+    <div class="badge"><span class="live-dot"></span>Offline Mode</div>
+  </header>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-title">// Transaction Inputs</div>
+    <div class="input-grid">
+      <div class="field">
+        <label>Market Price</label>
+        <div class="input-wrap">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="marketPrice" placeholder="e.g. 100" step="0.01" min="0">
+        </div>
+        <div class="hint">Per unit (₹)</div>
+      </div>
+      <div class="field">
+        <label>Amount (INR)</label>
+        <div class="input-wrap">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="amount" placeholder="e.g. 5000000" step="1" min="0">
+        </div>
+        <div class="hint">Total in ₹ (e.g. 50L = 5000000)</div>
+      </div>
+    </div>
+    <button class="calc-btn" onclick="calculate()">▶ &nbsp;Calculate Price &amp; Breakdown</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div class="results-grid">
+      <div class="stat-box">
+        <div class="stat-label">Base Deduction</div>
+        <div class="stat-value deduct" id="baseDeduct">—</div>
+        <div class="stat-sub">per unit (standard)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Final Deduction</div>
+        <div class="stat-value deduct" id="finalDeduct">—</div>
+        <div class="stat-sub">per unit (after bracket adj.)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Final Price / Unit</div>
+        <div class="stat-value" id="finalPrice">—</div>
+        <div class="stat-sub" id="finalPriceSub"></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Brackets Above 10L</div>
+        <div class="stat-value normal green" id="brackets">—</div>
+        <div class="stat-sub" id="bracketSub"></div>
+      </div>
+      <div class="stat-box highlight">
+        <div class="stat-label">▶ Effective Rate / Unit</div>
+        <div class="stat-value" id="totalPayable">—</div>
+        <div class="stat-sub" id="totalSub"></div>
+      </div>
+    </div>
+
+    <div class="breakdown-card">
+      <div class="breakdown-title">Step-by-Step Breakdown</div>
+      <div id="steps"></div>
+    </div>
+  </div>
+
+  <footer>HOPE GENESIS &nbsp;|&nbsp; TRUSTED CRYPTO EXCHANGE SERVICES &nbsp;|&nbsp; ₹ INR</footer>
+</div>
+
+<script>
+const BASE_DEDUCTION = 3;
+const REDUCTION_PER_BRACKET = 0.10;
+const LAKH = 100000;
+
+function formatINR(n, decimals = 2) {
+  return '₹' + n.toLocaleString('en-IN', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+}
+
+function formatLakh(n) {
+  const l = n / LAKH;
+  return l % 1 === 0 ? l + 'L' : l.toFixed(2) + 'L';
+}
+
+function calculate() {
+  const mp = parseFloat(document.getElementById('marketPrice').value);
+  const amt = parseFloat(document.getElementById('amount').value);
+
+  if (isNaN(mp) || isNaN(amt) || mp <= 0 || amt <= 0) {
+    alert('Please enter valid Market Price and Transaction Amount.');
+    return;
+  }
+
+  // Number of full 10L brackets ABOVE the first 10L
+  const amtAbove10L = Math.max(0, amt - 10 * LAKH);
+  const brackets = Math.floor(amtAbove10L / (10 * LAKH));
+
+  const finalDeduction = Math.max(0, BASE_DEDUCTION - brackets * REDUCTION_PER_BRACKET);
+  const finalPrice = mp - finalDeduction;
+
+  // Update summary boxes
+  document.getElementById('baseDeduct').textContent = '₹' + BASE_DEDUCTION.toFixed(2);
+  document.getElementById('finalDeduct').textContent = '₹' + finalDeduction.toFixed(2);
+  document.getElementById('finalPrice').textContent = formatINR(finalPrice);
+  document.getElementById('finalPriceSub').textContent = `Market ${formatINR(mp)} − deduction ₹${finalDeduction.toFixed(2)}`;
+  document.getElementById('brackets').textContent = brackets;
+  document.getElementById('bracketSub').textContent = brackets === 0
+    ? 'No extra reduction applied'
+    : `Each reduces deduction by ₹${REDUCTION_PER_BRACKET}`;
+  document.getElementById('totalPayable').textContent = formatINR(finalPrice);
+  document.getElementById('totalSub').textContent =
+    `You pay ${formatINR(finalPrice)} per unit for a ${formatLakh(amt)} transaction`;
+
+  // Build step-by-step breakdown
+  const steps = [];
+
+  steps.push({
+    heading: 'Market Price Input',
+    detail: `Base market price set at ${formatINR(mp)} per unit.`,
+    value: formatINR(mp),
+    cls: ''
+  });
+
+  steps.push({
+    heading: 'Transaction Amount',
+    detail: `Total transaction: ${formatINR(amt, 0)} (${formatLakh(amt)}).`,
+    value: formatLakh(amt),
+    cls: ''
+  });
+
+  steps.push({
+    heading: 'Base Deduction',
+    detail: `Standard deduction for the first 10L (and any amount below 10L): ₹${BASE_DEDUCTION.toFixed(2)} per unit. This applies uniformly regardless of amount.`,
+    value: '−₹' + BASE_DEDUCTION.toFixed(2),
+    cls: 'neg'
+  });
+
+  if (amt <= 10 * LAKH) {
+    steps.push({
+      heading: 'Bracket Check',
+      detail: `Amount (${formatLakh(amt)}) is ≤ 10L. No extra brackets apply. Full ₹${BASE_DEDUCTION.toFixed(2)} deduction used.`,
+      value: '0 brackets',
+      cls: ''
+    });
+  } else {
+    const amtAboveFormatted = formatLakh(amtAbove10L);
+    steps.push({
+      heading: 'Amount Above 10L',
+      detail: `${formatLakh(amt)} − 10L = ${amtAboveFormatted} above the base bracket. Each additional full 10L counts as one bracket.`,
+      value: amtAboveFormatted,
+      cls: ''
+    });
+
+    steps.push({
+      heading: `Bracket Count: ${brackets} bracket${brackets !== 1 ? 's' : ''}`,
+      detail: buildBracketDetail(amt, brackets),
+      value: `${brackets} × ₹${REDUCTION_PER_BRACKET}`,
+      cls: brackets > 0 ? 'neg' : ''
+    });
+
+    if (brackets > 0) {
+      const totalReduction = brackets * REDUCTION_PER_BRACKET;
+      steps.push({
+        heading: 'Deduction Reduction Applied',
+        detail: `${brackets} bracket${brackets !== 1 ? 's' : ''} × ₹${REDUCTION_PER_BRACKET} = ₹${totalReduction.toFixed(2)} total reduction from the base ₹${BASE_DEDUCTION} deduction.`,
+        value: '−₹' + totalReduction.toFixed(2),
+        cls: 'neg'
+      });
+    }
+  }
+
+  steps.push({
+    heading: 'Final Deduction',
+    detail: `₹${BASE_DEDUCTION.toFixed(2)} (base) − ₹${(brackets * REDUCTION_PER_BRACKET).toFixed(2)} (bracket reductions) = ₹${finalDeduction.toFixed(2)} per unit.`,
+    value: '₹' + finalDeduction.toFixed(2),
+    cls: 'neg'
+  });
+
+  steps.push({
+    heading: 'Final Price per Unit',
+    detail: `${formatINR(mp)} (market) − ₹${finalDeduction.toFixed(2)} (deduction) = ${formatINR(finalPrice)} per unit.`,
+    value: formatINR(finalPrice),
+    cls: 'pos'
+  });
+
+  steps.push({
+    heading: 'Effective Rate per Unit',
+    detail: `Final price paid per unit for a ${formatLakh(amt)} transaction at market price ${formatINR(mp)}: ${formatINR(finalPrice)}.`,
+    value: formatINR(finalPrice),
+    cls: 'pos'
+  });
+
+  const stepsEl = document.getElementById('steps');
+  stepsEl.innerHTML = steps.map((s, i) => `
+    <div class="step" style="animation-delay:${i * 0.06}s">
+      <div class="step-num">${String(i + 1).padStart(2,'0')}</div>
+      <div class="step-content">
+        <div class="step-heading">${s.heading}</div>
+        <div class="step-detail">${s.detail}</div>
+      </div>
+      <div class="step-value ${s.cls}">${s.value}</div>
+    </div>
+  `).join('');
+
+  const results = document.getElementById('results');
+  results.classList.add('visible');
+  setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+function buildBracketDetail(amt, brackets) {
+  const rows = [];
+  let html = '<table class="bracket-table"><thead><tr><th>Bracket</th><th>Range</th><th>Deduction</th></tr></thead><tbody>';
+  // First bracket (always active)
+  const d0 = BASE_DEDUCTION.toFixed(2);
+  html += `<tr class="active"><td>Base</td><td>0 – 10L</td><td>₹${d0}</td></tr>`;
+
+  const maxBracket = Math.max(brackets, Math.floor((amt - 10 * LAKH) / (10 * LAKH)));
+  for (let b = 1; b <= Math.max(brackets + 1, 4); b++) {
+    const from = (b * 10) + 'L';
+    const to = ((b + 1) * 10) + 'L';
+    const ded = Math.max(0, BASE_DEDUCTION - b * REDUCTION_PER_BRACKET).toFixed(2);
+    const active = b <= brackets ? 'active' : '';
+    html += `<tr class="${active}"><td>#${b}</td><td>${from} – ${to}</td><td>₹${ded}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  return `Full 10L slabs above 10L: ${brackets}. Active brackets highlighted below.<br>${html}`;
+}
+
+// Allow Enter to calculate
+document.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+</script>
+</body>
+</html>
