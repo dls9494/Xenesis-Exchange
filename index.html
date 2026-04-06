@@ -482,7 +482,7 @@
         <div class="stat-sub" id="finalPriceSub"></div>
       </div>
       <div class="stat-box">
-        <div class="stat-label">Brackets Above 10L</div>
+        <div class="stat-label">Lakhs Above 10L</div>
         <div class="stat-value normal green" id="brackets">—</div>
         <div class="stat-sub" id="bracketSub"></div>
       </div>
@@ -504,7 +504,7 @@
 
 <script>
 const BASE_DEDUCTION = 3;
-const REDUCTION_PER_BRACKET = 0.10;
+const REDUCTION_PER_LAKH = 0.01; // 1 paisa per lakh above 10L
 const LAKH = 100000;
 
 function formatINR(n, decimals = 2) {
@@ -528,11 +528,12 @@ function calculate() {
     return;
   }
 
-  // Number of full 10L brackets ABOVE the first 10L
+  // Full lakhs ABOVE the first 10L
   const amtAbove10L = Math.max(0, amt - 10 * LAKH);
-  const brackets = Math.floor(amtAbove10L / (10 * LAKH));
+  const lakhsAbove = Math.floor(amtAbove10L / LAKH); // each full 1L = 1 paisa reduction
 
-  const finalDeduction = Math.max(0, BASE_DEDUCTION - brackets * REDUCTION_PER_BRACKET);
+  const totalReduction = lakhsAbove * REDUCTION_PER_LAKH;
+  const finalDeduction = Math.max(0, BASE_DEDUCTION - totalReduction);
   const finalPrice = mp - finalDeduction;
 
   // Update summary boxes
@@ -540,10 +541,10 @@ function calculate() {
   document.getElementById('finalDeduct').textContent = '₹' + finalDeduction.toFixed(2);
   document.getElementById('finalPrice').textContent = formatINR(finalPrice);
   document.getElementById('finalPriceSub').textContent = `Market ${formatINR(mp)} − deduction ₹${finalDeduction.toFixed(2)}`;
-  document.getElementById('brackets').textContent = brackets;
-  document.getElementById('bracketSub').textContent = brackets === 0
+  document.getElementById('brackets').textContent = lakhsAbove + 'L';
+  document.getElementById('bracketSub').textContent = lakhsAbove === 0
     ? 'No extra reduction applied'
-    : `Each reduces deduction by ₹${REDUCTION_PER_BRACKET}`;
+    : `${lakhsAbove}L × ₹0.01 = ₹${totalReduction.toFixed(2)} reduced`;
   document.getElementById('totalPayable').textContent = formatINR(finalPrice);
   document.getElementById('totalSub').textContent =
     `You pay ${formatINR(finalPrice)} per unit for a ${formatLakh(amt)} transaction`;
@@ -567,48 +568,44 @@ function calculate() {
 
   steps.push({
     heading: 'Base Deduction',
-    detail: `Standard deduction for the first 10L (and any amount below 10L): ₹${BASE_DEDUCTION.toFixed(2)} per unit. This applies uniformly regardless of amount.`,
+    detail: `Standard deduction for any amount up to 10L: ₹${BASE_DEDUCTION.toFixed(2)} per unit.`,
     value: '−₹' + BASE_DEDUCTION.toFixed(2),
     cls: 'neg'
   });
 
   if (amt <= 10 * LAKH) {
     steps.push({
-      heading: 'Bracket Check',
-      detail: `Amount (${formatLakh(amt)}) is ≤ 10L. No extra brackets apply. Full ₹${BASE_DEDUCTION.toFixed(2)} deduction used.`,
-      value: '0 brackets',
+      heading: 'Lakh Check',
+      detail: `Amount (${formatLakh(amt)}) is ≤ 10L. No extra reduction applies. Full ₹${BASE_DEDUCTION.toFixed(2)} deduction used.`,
+      value: '0L above 10L',
       cls: ''
     });
   } else {
-    const amtAboveFormatted = formatLakh(amtAbove10L);
     steps.push({
       heading: 'Amount Above 10L',
-      detail: `${formatLakh(amt)} − 10L = ${amtAboveFormatted} above the base bracket. Each additional full 10L counts as one bracket.`,
-      value: amtAboveFormatted,
+      detail: `${formatLakh(amt)} − 10L = ${formatLakh(amtAbove10L)} above the base threshold. Each full 1 lakh above 10L reduces the deduction by 1 paisa (₹0.01).`,
+      value: formatLakh(amtAbove10L),
       cls: ''
     });
 
     steps.push({
-      heading: `Bracket Count: ${brackets} bracket${brackets !== 1 ? 's' : ''}`,
-      detail: buildBracketDetail(amt, brackets),
-      value: `${brackets} × ₹${REDUCTION_PER_BRACKET}`,
-      cls: brackets > 0 ? 'neg' : ''
+      heading: `Lakhs Counted: ${lakhsAbove}L`,
+      detail: buildLakhDetail(amt, lakhsAbove),
+      value: `${lakhsAbove} × ₹0.01`,
+      cls: 'neg'
     });
 
-    if (brackets > 0) {
-      const totalReduction = brackets * REDUCTION_PER_BRACKET;
-      steps.push({
-        heading: 'Deduction Reduction Applied',
-        detail: `${brackets} bracket${brackets !== 1 ? 's' : ''} × ₹${REDUCTION_PER_BRACKET} = ₹${totalReduction.toFixed(2)} total reduction from the base ₹${BASE_DEDUCTION} deduction.`,
-        value: '−₹' + totalReduction.toFixed(2),
-        cls: 'neg'
-      });
-    }
+    steps.push({
+      heading: 'Total Reduction Applied',
+      detail: `${lakhsAbove} lakh${lakhsAbove !== 1 ? 's' : ''} × ₹0.01 (1 paisa) = ₹${totalReduction.toFixed(2)} total reduction from the base ₹${BASE_DEDUCTION} deduction.`,
+      value: '−₹' + totalReduction.toFixed(2),
+      cls: 'neg'
+    });
   }
 
   steps.push({
     heading: 'Final Deduction',
-    detail: `₹${BASE_DEDUCTION.toFixed(2)} (base) − ₹${(brackets * REDUCTION_PER_BRACKET).toFixed(2)} (bracket reductions) = ₹${finalDeduction.toFixed(2)} per unit.`,
+    detail: `₹${BASE_DEDUCTION.toFixed(2)} (base) − ₹${totalReduction.toFixed(2)} (lakh reductions) = ₹${finalDeduction.toFixed(2)} per unit.`,
     value: '₹' + finalDeduction.toFixed(2),
     cls: 'neg'
   });
@@ -644,23 +641,22 @@ function calculate() {
   setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 }
 
-function buildBracketDetail(amt, brackets) {
-  const rows = [];
-  let html = '<table class="bracket-table"><thead><tr><th>Bracket</th><th>Range</th><th>Deduction</th></tr></thead><tbody>';
-  // First bracket (always active)
-  const d0 = BASE_DEDUCTION.toFixed(2);
-  html += `<tr class="active"><td>Base</td><td>0 – 10L</td><td>₹${d0}</td></tr>`;
-
-  const maxBracket = Math.max(brackets, Math.floor((amt - 10 * LAKH) / (10 * LAKH)));
-  for (let b = 1; b <= Math.max(brackets + 1, 4); b++) {
-    const from = (b * 10) + 'L';
-    const to = ((b + 1) * 10) + 'L';
-    const ded = Math.max(0, BASE_DEDUCTION - b * REDUCTION_PER_BRACKET).toFixed(2);
-    const active = b <= brackets ? 'active' : '';
-    html += `<tr class="${active}"><td>#${b}</td><td>${from} – ${to}</td><td>₹${ded}</td></tr>`;
+function buildLakhDetail(amt, lakhsAbove) {
+  let html = '<table class="bracket-table"><thead><tr><th>Lakh Slab</th><th>Range</th><th>Deduction</th></tr></thead><tbody>';
+  html += `<tr class="active"><td>Base</td><td>0 – 10L</td><td>₹3.00</td></tr>`;
+  const showRows = Math.min(lakhsAbove + 2, 12);
+  for (let l = 1; l <= showRows; l++) {
+    const from = (10 + l - 1) + 'L';
+    const to = (10 + l) + 'L';
+    const ded = Math.max(0, BASE_DEDUCTION - l * REDUCTION_PER_LAKH).toFixed(2);
+    const active = l <= lakhsAbove ? 'active' : '';
+    html += `<tr class="${active}"><td>+${l}L</td><td>${from} – ${to}</td><td>₹${ded}</td></tr>`;
+  }
+  if (lakhsAbove > showRows) {
+    html += `<tr><td colspan="3" style="color:#555;text-align:center">… and ${lakhsAbove - showRows} more lakhs</td></tr>`;
   }
   html += '</tbody></table>';
-  return `Full 10L slabs above 10L: ${brackets}. Active brackets highlighted below.<br>${html}`;
+  return `Full 1L slabs above 10L: ${lakhsAbove}. Active slabs highlighted below.<br>${html}`;
 }
 
 // Allow Enter to calculate
